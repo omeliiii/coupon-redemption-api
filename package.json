@@ -26,7 +26,7 @@
   "dependencies": {
     "fastify": "^5.3.3",
     "fastify-type-provider-zod": "^4.0.2",
-    "kysely": "^0.27.6",
+    "kysely": "^0.28.16",
     "pg": "^8.14.1",
     "zod": "^3.24.4"
   },
