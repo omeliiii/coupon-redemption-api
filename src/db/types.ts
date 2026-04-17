@@ -1,0 +1,9 @@
+// --- Postgres ENUM types ---
+
+export type CampaignStatus = 'available' | 'not_available';
+export type CouponStatus = 'available' | 'not_available';
+export type UserRole = 'user' | 'admin';
+
+// --- Table interfaces ---
+
+export interface Database { }
