@@ -30,6 +30,13 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .execute();
 
+  // Index on campaign start_timestamp for ordering
+  await db.schema
+    .createIndex('idx_campaigns_start_timestamp')
+    .on('campaigns')
+    .columns(['start_timestamp'])
+    .execute();
+
   await sql`
     CREATE TRIGGER set_updated_at
     BEFORE UPDATE ON campaigns
