@@ -2,25 +2,26 @@ import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
-  // enum for campaign status
+  // enum for coupon status
   await db.schema
-    .createType('campaign_status')
+    .createType('coupon_status')
     .asEnum(['available', 'not_available'])
     .execute();
 
   await db.schema
-    .createTable('campaigns')
+    .createTable('coupons')
     .addColumn('id', 'uuid', (col) =>
       col.primaryKey().defaultTo(sql`gen_random_uuid()`)
     )
-    .addColumn('name', 'varchar(255)', (col) => col.notNull())
-    .addColumn('description', 'text')
-    .addColumn('status', sql`campaign_status`, (col) => col.notNull())
-    .addColumn('start_timestamp', 'timestamptz', (col) => col.notNull())
-    .addColumn('end_timestamp', 'timestamptz')
+    .addColumn('code', 'varchar(255)', (col) => col.notNull().unique())
+    .addColumn('status', sql`coupon_status`, (col) => col.notNull())
+    .addColumn('expiration_timestamp', 'timestamptz')
     .addColumn('max_redemptions', 'integer')
     .addColumn('redemptions_count', 'integer', (col) =>
       col.notNull().defaultTo(0)
+    )
+    .addColumn('campaign_id', 'uuid', (col) =>
+      col.notNull().references('campaigns.id').onDelete('restrict')
     )
     .addColumn('created_at', 'timestamptz', (col) =>
       col.notNull().defaultTo(sql`NOW()`)
@@ -30,15 +31,22 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .execute();
 
+  // Index on campaign_id foreign key
+  await db.schema
+    .createIndex('idx_coupons_campaign_id')
+    .on('coupons')
+    .column('campaign_id')
+    .execute();
+
   await sql`
     CREATE TRIGGER set_updated_at
-    BEFORE UPDATE ON campaigns
+    BEFORE UPDATE ON coupons
     FOR EACH ROW
     EXECUTE FUNCTION trigger_set_updated_at();
   `.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropTable('campaigns').execute();
-  await db.schema.dropType('campaign_status').execute();
+  await db.schema.dropTable('coupons').execute();
+  await db.schema.dropType('coupon_status').execute();
 }
