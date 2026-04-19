@@ -8,6 +8,7 @@ import {
 import { config } from './config.js';
 import { couponRoutes } from './coupons/routes.js';
 import { redemptionRoutes } from './redemptions/routes.js';
+import { userRoutes } from './users/routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -26,6 +27,7 @@ export async function buildApp() {
 
   await app.register(couponRoutes);
   await app.register(redemptionRoutes);
+  await app.register(userRoutes);
 
   app.get('/health', async () => {
     return { status: 'ok' };

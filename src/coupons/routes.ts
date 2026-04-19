@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { getAvailableCoupons, createCouponWithCampaign } from './service.js';
 import { config } from '../config.js';
 import type { FastifyZodInstance } from '../types.js';
+import { authenticateAdmin } from '../hooks/authenticate-admin.js';
 
 const listCouponsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -42,6 +43,7 @@ export async function couponRoutes(app: FastifyZodInstance) {
     schema: {
       querystring: listCouponsQuerySchema,
     },
+    preHandler: [authenticateAdmin],
   }, async (request) => {
     const { page, pageSize } = request.query;
     const coupons = await getAvailableCoupons({ page, pageSize });
@@ -59,6 +61,7 @@ export async function couponRoutes(app: FastifyZodInstance) {
     schema: {
       body: createCouponBodySchema,
     },
+    preHandler: [authenticateAdmin],
   }, async (request, reply) => {
     const created = await createCouponWithCampaign(request.body);
 
