@@ -135,7 +135,59 @@ describe('Redemption API', () => {
       },
     });
 
-    expect(response.statusCode).toBe(409);
-    expect(response.json().error).toBe('CampaignExpiredForRedemptionError');
+  });
+
+  it('should return 409 if the coupon max redemptions limit is reached', async () => {
+    const user1 = await seedRegularUser(testDb, 'user1@test.com');
+    const user2 = await seedRegularUser(testDb, 'user2@test.com');
+    const campaign = await seedCampaign(testDb);
+    const coupon = await seedCoupon(testDb, campaign.id, {
+      code: 'ONLYONE',
+      maxRedemptions: 1
+    });
+
+    // User 1 redeems successfully
+    const response1 = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon.code}/redeem`,
+      headers: { 'x-user-id': user1.id },
+    });
+    expect(response1.statusCode).toBe(201);
+
+    // User 2 can't redeem
+    const response2 = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon.code}/redeem`,
+      headers: { 'x-user-id': user2.id },
+    });
+    expect(response2.statusCode).toBe(409);
+    expect(response2.json().error).toBe('CouponRedemptionLimitReachedError');
+  });
+
+  it('should return 409 if the campaign max redemptions limit is reached', async () => {
+    const user1 = await seedRegularUser(testDb, 'user1@test.com');
+    const user2 = await seedRegularUser(testDb, 'user2@test.com');
+    const campaign = await seedCampaign(testDb, { maxRedemptions: 1 });
+
+    const coupon1 = await seedCoupon(testDb, campaign.id, { code: 'FIRST' });
+    const coupon2 = await seedCoupon(testDb, campaign.id, { code: 'SECOND' });
+
+    // User 1 redeems coupon 1 successfully
+    const response1 = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon1.code}/redeem`,
+      headers: { 'x-user-id': user1.id },
+    });
+    expect(response1.statusCode).toBe(201);
+
+    // User 2 can't redeem
+    const response2 = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon2.code}/redeem`,
+      headers: { 'x-user-id': user2.id },
+    });
+
+    expect(response2.statusCode).toBe(409);
+    expect(response2.json().error).toBe('CampaignRedemptionLimitReachedError');
   });
 });

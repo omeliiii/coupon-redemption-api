@@ -10,10 +10,10 @@ export async function seedAdminUser(db: Kysely<DB>) {
   return user;
 }
 
-export async function seedRegularUser(db: Kysely<DB>) {
+export async function seedRegularUser(db: Kysely<DB>, email: string = 'user@test.com') {
   const user = await db
     .insertInto('users')
-    .values({ email: 'user@test.com', role: 'user' })
+    .values({ email, role: 'user' })
     .returningAll()
     .executeTakeFirstOrThrow();
   return user;
