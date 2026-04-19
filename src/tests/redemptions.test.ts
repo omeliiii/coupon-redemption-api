@@ -190,4 +190,52 @@ describe('Redemption API', () => {
     expect(response2.statusCode).toBe(409);
     expect(response2.json().error).toBe('CampaignRedemptionLimitReachedError');
   });
+
+  it('should handle concurrent redemptions safely preventing race conditions', async () => {
+    // Coupon with max 1 redemptions
+    // We try to redeem it concurrently 20 times with 20 different users
+    // Only 1 should succeed, exactly 19 should fail, and the counter should be exactly 1
+    const limit = 1;
+    const concurrentRequests = 20;
+
+    const campaign = await seedCampaign(testDb);
+    const coupon = await seedCoupon(testDb, campaign.id, {
+      code: 'CONCURRENCY_TEST',
+      maxRedemptions: limit,
+    });
+
+    // Create 20 different users
+    const users = await Promise.all(
+      Array.from({ length: concurrentRequests }).map((_, i) =>
+        seedRegularUser(testDb, `concurrent_user_${i}@test.com`)
+      )
+    );
+
+    // Fire all requests concurrently
+    const responses = await Promise.all(
+      users.map((user) =>
+        app.inject({
+          method: 'POST',
+          url: `/coupons/${coupon.code}/redeem`,
+          headers: { 'x-user-id': user.id },
+        })
+      )
+    );
+
+    const successfulResponses = responses.filter((r) => r.statusCode === 201);
+    const conflictResponses = responses.filter((r) => r.statusCode === 409);
+
+    // Exactly 1 should succeed, 19 should fail
+    expect(successfulResponses.length).toBe(limit);
+    expect(conflictResponses.length).toBe(concurrentRequests - limit);
+
+    // Verify redemptions count
+    const updatedCoupon = await testDb
+      .selectFrom('coupons')
+      .select('redemptions_count')
+      .where('id', '=', coupon.id)
+      .executeTakeFirstOrThrow();
+
+    expect(updatedCoupon.redemptions_count).toBe(limit);
+  });
 });

@@ -1,5 +1,5 @@
 import { listAvailableCoupons, insertCoupon, type ListCouponsParams } from './repository.js';
-import { getValidCampaignOrThrow, createCampaign, type CreateCampaignInput } from '../campaigns/service.js';
+import { getValidCampaignOrThrow, createCampaign, CampaignExpiredError, type CreateCampaignInput } from '../campaigns/service.js';
 import type { CouponStatus } from '../db/types.js';
 
 export interface CreateCouponInput {
@@ -43,16 +43,19 @@ export async function getAvailableCoupons(params: ListCouponsParams) {
  * - If campaign data is provided: create the campaign first, then the coupon.
  */
 export async function createCouponWithCampaign(input: CreateCouponWithCampaignInput) {
-  let campaignId: string;
+  let campaign;
 
   if ('campaignId' in input && input.campaignId !== undefined) {
-    const campaign = await getValidCampaignOrThrow(input.campaignId);
-    campaignId = campaign.id;
+    campaign = await getValidCampaignOrThrow(input.campaignId);
   } else if ('campaign' in input && input.campaign !== undefined) {
-    const campaign = await createCampaign(input.campaign);
-    campaignId = campaign.id;
+    campaign = await createCampaign(input.campaign);
   } else {
     throw new Error('Either campaignId or campaign data must be provided');
+  }
+
+  // You can't create a coupon for an expired campaign
+  if (campaign.end_timestamp && new Date(campaign.end_timestamp) <= new Date()) {
+    throw new CampaignExpiredError(campaign.id);
   }
 
   const coupon = await insertCoupon({
@@ -60,7 +63,7 @@ export async function createCouponWithCampaign(input: CreateCouponWithCampaignIn
     status: input.coupon.status,
     expiration_timestamp: input.coupon.expirationTimestamp ?? null,
     max_redemptions: input.coupon.maxRedemptions ?? null,
-    campaign_id: campaignId,
+    campaign_id: campaign.id,
   });
 
   return coupon;
