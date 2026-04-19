@@ -7,6 +7,7 @@ import {
 } from 'fastify-type-provider-zod';
 import { config } from './config.js';
 import { couponRoutes } from './coupons/routes.js';
+import { redemptionRoutes } from './redemptions/routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -24,6 +25,7 @@ export async function buildApp() {
   });
 
   await app.register(couponRoutes);
+  await app.register(redemptionRoutes);
 
   app.get('/health', async () => {
     return { status: 'ok' };
