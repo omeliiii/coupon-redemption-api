@@ -9,6 +9,7 @@ import { config } from './config.js';
 import { couponRoutes } from './coupons/routes.js';
 import { redemptionRoutes } from './redemptions/routes.js';
 import { userRoutes } from './users/routes.js';
+import { errorHandler } from './errors/error-handler.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -19,6 +20,7 @@ export async function buildApp() {
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+  app.setErrorHandler(errorHandler);
 
   await app.register(rateLimit, {
     max: config.rateLimit.max,
