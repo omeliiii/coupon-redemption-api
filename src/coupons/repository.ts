@@ -1,5 +1,7 @@
 import { sql } from 'kysely';
+import type { Insertable } from 'kysely';
 import { db } from '../db/database.js';
+import type { Coupons } from '../db/generated.js';
 
 export interface ListCouponsParams {
   page: number;
@@ -53,4 +55,12 @@ export async function listAvailableCoupons({ page, pageSize }: ListCouponsParams
     .execute();
 
   return coupons;
+}
+
+export async function insertCoupon(data: Insertable<Coupons>) {
+  return db
+    .insertInto('coupons')
+    .values(data)
+    .returningAll()
+    .executeTakeFirstOrThrow();
 }
