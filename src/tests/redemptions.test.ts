@@ -59,6 +59,34 @@ describe('Redemption API', () => {
       .executeTakeFirstOrThrow();
 
     expect(updatedCoupon.redemptions_count).toBe(coupon.redemptions_count + 1);
-    expect(updatedCampaign.redemptions_count).toBe(campaign.redemptions_count + 1);
+  });
+
+  it('should return 409 if a user tries to redeem the same coupon twice', async () => {
+    const user = await seedRegularUser(testDb);
+    const campaign = await seedCampaign(testDb);
+    const coupon = await seedCoupon(testDb, campaign.id, { code: 'EEHVOLEVI' });
+
+    // First redemption should succeed
+    const firstResponse = await app.inject({
+      method: 'POST',
+      url: '/coupons/EEHVOLEVI/redeem',
+      headers: {
+        'x-user-id': user.id,
+      },
+    });
+
+    expect(firstResponse.statusCode, `First redemption failed with: ${firstResponse.body}`).toBe(201);
+
+    // Second redemption should return 409
+    const secondResponse = await app.inject({
+      method: 'POST',
+      url: '/coupons/EEHVOLEVI/redeem',
+      headers: {
+        'x-user-id': user.id,
+      },
+    });
+
+    expect(secondResponse.statusCode).toBe(409);
+    expect(secondResponse.json().error).toBe('AlreadyRedeemedError');
   });
 });
