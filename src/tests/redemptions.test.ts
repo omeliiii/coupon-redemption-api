@@ -89,4 +89,53 @@ describe('Redemption API', () => {
     expect(secondResponse.statusCode).toBe(409);
     expect(secondResponse.json().error).toBe('AlreadyRedeemedError');
   });
+
+  it('should return 409 if the coupon is expired', async () => {
+    const user = await seedRegularUser(testDb);
+    const campaign = await seedCampaign(testDb);
+
+    // Create an expired coupon (yesterday)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const coupon = await seedCoupon(testDb, campaign.id, {
+      code: 'TOOLATE',
+      expirationTimestamp: yesterday,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon.code}/redeem`,
+      headers: {
+        'x-user-id': user.id,
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('CouponExpiredError');
+  });
+
+  it('should return 409 if the campaign is expired', async () => {
+    const user = await seedRegularUser(testDb);
+
+    // Create an expired campaign (yesterday)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const campaign = await seedCampaign(testDb, {
+      endTimestamp: yesterday,
+    });
+    const coupon = await seedCoupon(testDb, campaign.id, { code: 'MAYBENEXTTIME' });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon.code}/redeem`,
+      headers: {
+        'x-user-id': user.id,
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('CampaignExpiredForRedemptionError');
+  });
 });
