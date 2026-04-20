@@ -14,9 +14,9 @@ export type CreateCouponWithCampaignInput =
   | { coupon: CreateCouponInput; campaignId?: never; campaign: CreateCampaignInput };
 
 export async function getAvailableCoupons(params: ListCouponsParams) {
-  const coupons = await listAvailableCoupons(params);
+  const result = await listAvailableCoupons(params);
 
-  return coupons.map((row) => ({
+  const data = result.items.map((row) => ({
     id: row.id,
     code: row.code,
     status: row.couponStatus,
@@ -35,6 +35,15 @@ export async function getAvailableCoupons(params: ListCouponsParams) {
       redemptionsCount: row.campaignRedemptionsCount,
     },
   }));
+
+  return {
+    data,
+    meta: {
+      ...result.meta,
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  };
 }
 
 /**

@@ -49,21 +49,23 @@ export async function couponRoutes(app: FastifyZodInstance) {
       response: {
         200: z.object({
           data: z.array(z.record(z.any())).describe('List of coupons'),
-          meta: z.object({ page: z.number(), pageSize: z.number() }).describe('Pagination metadata')
+          meta: z.object({ 
+            page: z.number().describe('Current page number'), 
+            pageSize: z.number().describe('Number of items per page'),
+            total: z.number().describe('Total number of items'),
+            totalPages: z.number().describe('Total number of pages'),
+          }).describe('Pagination metadata')
         }).describe('Successful response containing paginated coupons')
       }
     },
     preHandler: [authenticateAdmin],
   }, async (request) => {
     const { page, pageSize } = request.query;
-    const coupons = await getAvailableCoupons({ page, pageSize });
+    const result = await getAvailableCoupons({ page, pageSize });
 
     return {
-      data: coupons,
-      meta: {
-        page,
-        pageSize,
-      },
+      data: result.data,
+      meta: result.meta,
     };
   });
 
