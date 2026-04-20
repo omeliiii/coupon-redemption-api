@@ -114,9 +114,11 @@ curl -X POST http://localhost:3000/coupons/HIDDEN_COUPON/redeem \
 - **Nullability**: `null` values in `expiration_timestamp` or `end_timestamp` indicate infinite validity.
 - **Visibility vs Usage**: `GET /coupons` only returns coupons where both the coupon and campaign are `available` and not expired. It includes coupons for future campaigns to allow client-side visibility. However, `POST .../redeem` explicitly rejects usage until the `start_timestamp` is reached.
 - **Creation-Time Validation**: `POST /coupons` validates that the associated campaign (whether existing or new) is not already expired. Attempting to link a coupon to an expired campaign returns a `CampaignExpiredError` (409 Conflict).
+- **Campaign Identification by ID**: Campaigns are referenced via `campaignId` (UUID) rather than `name`. UUIDs are immutable and globally unique, avoiding ambiguity in cases of duplicate or renamed campaigns. The `name` field is a mutable, human-readable label and is not suitable as a stable foreign key.
 
 ### 3. Persistence Layer
 - **Postgres ENUMs**: Native ENUM types are used for `status` and `role`. This ensures strict internal validation and type safety compared to varchar-based implementations.
+- **Explicit Status Requirement**: Neither `campaign.status` nor `coupon.status` defines a schema default. This is intentional: it forces the API caller to consciously decide the initial state of the resource, preventing accidental publication of campaigns or coupons that should have been created as `not_available`.
 - **Transaction History**: `ON DELETE RESTRICT` is enforced. Financial and transactional integrity requires that campaigns or coupons with any associated redemption remains un-deletable.
 - **System Columns**: `created_at` and `updated_at` are handled via PostgreSQL `DEFAULT NOW()` and native triggers, ensuring consistency regardless of the application client.
 

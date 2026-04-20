@@ -112,6 +112,65 @@ describe('Coupons API', () => {
   });
 
   describe('POST /coupons', () => {
+    it('should create a coupon for an existing campaign', async () => {
+      const admin = await seedAdminUser(testDb);
+      const campaign = await seedCampaign(testDb);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/coupons',
+        headers: { 'x-user-id': admin.id },
+        payload: {
+          coupon: {
+            code: 'HAPPY_PATH_EXISTING',
+            status: 'available',
+          },
+          campaignId: campaign.id,
+        },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const body = res.json();
+      expect(body.data.code).toBe('HAPPY_PATH_EXISTING');
+      expect(body.data.campaign_id).toBe(campaign.id);
+    });
+
+    it('should create a coupon with an inline campaign', async () => {
+      const admin = await seedAdminUser(testDb);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/coupons',
+        headers: { 'x-user-id': admin.id },
+        payload: {
+          coupon: {
+            code: 'HAPPY_PATH_INLINE',
+            status: 'available',
+          },
+          campaign: {
+            name: 'Inline Campaign',
+            status: 'available',
+            startTimestamp: new Date().toISOString(),
+          },
+        },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const body = res.json();
+      expect(body.data.code).toBe('HAPPY_PATH_INLINE');
+      expect(body.data.campaign_id).toBeDefined();
+
+      // Verify the campaign was actually created in the database
+      const createdCampaign = await testDb
+        .selectFrom('campaigns')
+        .where('id', '=', body.data.campaign_id)
+        .selectAll()
+        .executeTakeFirst();
+
+      expect(createdCampaign).toBeDefined();
+      expect(createdCampaign!.name).toBe('Inline Campaign');
+    });
+
     it('should fail if the existing campaign is expired', async () => {
       const admin = await seedAdminUser(testDb);
 
