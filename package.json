@@ -1,6 +1,7 @@
 {
   "name": "coupon-redemption-api",
   "version": "1.0.0",
+  "type": "module",
   "description": "REST API for a coupon redemption system",
   "main": "dist/server.js",
   "scripts": {
