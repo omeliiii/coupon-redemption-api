@@ -13,6 +13,7 @@ export async function authenticateAdmin(
   const userId = request.headers['x-user-id'];
 
   if (!userId || typeof userId !== 'string') {
+    request.log.warn('Auth rejected: missing x-user-id header');
     return reply.status(401).send({
       error: 'Unauthorized',
       message: 'Missing x-user-id header',
@@ -22,6 +23,7 @@ export async function authenticateAdmin(
   const user = await getUserById(userId);
 
   if (!user) {
+    request.log.warn({ userId }, 'Auth rejected: user not found');
     return reply.status(401).send({
       error: 'Unauthorized',
       message: 'User not found',
@@ -29,6 +31,7 @@ export async function authenticateAdmin(
   }
 
   if (user.role !== 'admin') {
+    request.log.warn({ userId, role: user.role }, 'Auth rejected: not admin');
     return reply.status(403).send({
       error: 'Forbidden',
       message: 'Admin access required',

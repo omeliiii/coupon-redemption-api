@@ -61,6 +61,9 @@ export async function couponRoutes(app: FastifyZodInstance) {
     preHandler: [authenticateAdmin],
   }, async (request) => {
     const { page, pageSize } = request.query;
+
+    request.log.info({ page, pageSize }, 'Listing coupons');
+
     const result = await getAvailableCoupons({ page, pageSize });
 
     return {
@@ -84,7 +87,13 @@ export async function couponRoutes(app: FastifyZodInstance) {
     },
     preHandler: [authenticateAdmin],
   }, async (request, reply) => {
+    // Determine the campaign name or ID being targeted depending on what is provided
+    const payloadLogKey = 'campaignId' in request.body ? { targetCampaignId: request.body.campaignId } : { targetCampaignName: request.body.campaign?.name };
+    request.log.info({ code: request.body.coupon.code, ...payloadLogKey }, 'Creating coupon');
+    
     const created = await createCouponWithCampaign(request.body);
+
+    request.log.info({ couponId: created.id }, 'Coupon created');
 
     return reply.status(201).send({ data: created });
   });

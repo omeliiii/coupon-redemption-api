@@ -68,7 +68,7 @@ export async function buildApp() {
       onRequest: function (request, reply, next) { next() },
       preHandler: function (request, reply, next) {
         if (request.url.includes('/static/')) {
-          console.log('SWAGGER UI REQUEST:', request.url, request.params);
+          request.log.debug({ url: request.url, params: request.params }, 'SWAGGER UI REQUEST');
         }
         next()
       }

@@ -24,7 +24,11 @@ export async function userRoutes(app: FastifyZodInstance) {
     },
     preHandler: [authenticateAdmin],
   }, async (request, reply) => {
+    request.log.info({ email: request.body.email }, 'Creating user');
+
     const user = await createUser(request.body);
+
+    request.log.info({ userId: user.id }, 'User created');
 
     return reply.status(201).send({ data: user });
   });
