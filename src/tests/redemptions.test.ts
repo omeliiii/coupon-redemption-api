@@ -238,4 +238,59 @@ describe('Redemption API', () => {
 
     expect(updatedCoupon.redemptions_count).toBe(limit);
   });
+
+  it('should return 409 if the campaign has not started yet', async () => {
+    const user = await seedRegularUser(testDb, 'user_not_started@test.com');
+
+    // Create a campaign starting tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const campaign = await seedCampaign(testDb, {
+      startTimestamp: tomorrow,
+    });
+    const coupon = await seedCoupon(testDb, campaign.id, { code: 'NOT_STARTED_CAMP' });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon.code}/redeem`,
+      headers: { 'x-user-id': user.id },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('CampaignNotStartedError');
+  });
+
+  it('should return 409 if the coupon status is not_available', async () => {
+    const user = await seedRegularUser(testDb, 'user_coupon_na@test.com');
+    const campaign = await seedCampaign(testDb);
+    const coupon = await seedCoupon(testDb, campaign.id, {
+      code: 'NA_COUPON',
+      status: 'not_available',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon.code}/redeem`,
+      headers: { 'x-user-id': user.id },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('CouponNotAvailableError');
+  });
+
+  it('should return 409 if the campaign status is not_available', async () => {
+    const user = await seedRegularUser(testDb, 'user_camp_na@test.com');
+    const campaign = await seedCampaign(testDb, { status: 'not_available' });
+    const coupon = await seedCoupon(testDb, campaign.id, { code: 'NA_CAMPAIGN' });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/coupons/${coupon.code}/redeem`,
+      headers: { 'x-user-id': user.id },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('CampaignNotAvailableError');
+  });
 });

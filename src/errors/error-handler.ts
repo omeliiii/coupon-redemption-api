@@ -12,6 +12,7 @@ const domainErrorMap = new Map<string, number>([
   ['CampaignNotAvailableError', 409],
   ['CampaignExpiredError', 409],
   ['CampaignExpiredForRedemptionError', 409],
+  ['CampaignNotStartedError', 409],
   ['AlreadyRedeemedError', 409],
   ['CouponRedemptionLimitReachedError', 409],
   ['CampaignRedemptionLimitReachedError', 409],

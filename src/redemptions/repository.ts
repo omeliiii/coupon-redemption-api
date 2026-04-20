@@ -23,6 +23,7 @@ export async function findCouponWithCampaignForUpdate(
       'coupons.redemptions_count as couponRedemptionsCount',
       'campaigns.id as campaignId',
       'campaigns.status as campaignStatus',
+      'campaigns.start_timestamp as campaignStartTimestamp',
       'campaigns.end_timestamp as campaignEndTimestamp',
       'campaigns.max_redemptions as campaignMaxRedemptions',
       'campaigns.redemptions_count as campaignRedemptionsCount',

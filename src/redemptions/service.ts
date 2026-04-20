@@ -40,6 +40,11 @@ export async function redeemCoupon({ userId, code }: RedeemCouponInput) {
       throw new CampaignNotAvailableError(row.campaignId);
     }
 
+    // Validate campaign start
+    if (row.campaignStartTimestamp && new Date(row.campaignStartTimestamp) > new Date()) {
+      throw new CampaignNotStartedError(row.campaignId);
+    }
+
     // Validate campaign expiration
     if (row.campaignEndTimestamp && new Date(row.campaignEndTimestamp) <= new Date()) {
       throw new CampaignExpiredForRedemptionError(row.campaignId);
@@ -125,5 +130,12 @@ export class CampaignRedemptionLimitReachedError extends Error {
   constructor(campaignId: string) {
     super(`Campaign redemption limit reached: ${campaignId}`);
     this.name = 'CampaignRedemptionLimitReachedError';
+  }
+}
+
+export class CampaignNotStartedError extends Error {
+  constructor(campaignId: string) {
+    super(`Campaign has not started yet: ${campaignId}`);
+    this.name = 'CampaignNotStartedError';
   }
 }
