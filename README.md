@@ -126,3 +126,4 @@ curl -X POST http://localhost:3000/coupons/HIDDEN_COUPON/redeem \
 - **Rate Limiting**: Implemented using `@fastify/rate-limit`. Current configuration uses in-memory storage; horizontal scaling would require a shared Redis store.
 - **Pagination**: Offset-based implementation. Responses include a `meta` object with `total` and `totalPages` to enable functional client-side navigation.
 - **Ordering**: Listing is ordered by `campaign.start_timestamp ASC` and `coupon.code ASC`. This grants stable and consistent pagination.
+- **Logging**: Pino is natively integrated via Fastify (`logger: true`). Output is in structured JSON format. Explicit domain logs are added at critical points of the redemption flow: attempt, success, and every failure case (e.g., `CouponExpiredError`, `LimitReachedError`, `AlreadyRedeemedError`).
