@@ -33,36 +33,41 @@ async function seed() {
     // 3. Create Campaigns
     console.log('Creating campaigns...');
 
-    // Campaign A: Infinite usage
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Campaign A: Infinite usage, No end (AVAILABLE)
     const campaignA = await db
       .insertInto('campaigns')
       .values({
         name: 'Summer Sale 2026',
-        description: 'Global summer discount campaign',
+        description: 'Global summer discount campaign (No end, No max redemptions)',
         status: 'available',
-        start_timestamp: new Date('2026-01-01'), // already started
-        max_redemptions: null, // infinite
+        start_timestamp: new Date('2026-01-01'),
+        max_redemptions: null,
+        end_timestamp: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    // Campaign B: Limited usage (max 10)
+    // Campaign B: Limited usage, With end (AVAILABLE)
     const campaignB = await db
       .insertInto('campaigns')
       .values({
         name: 'Limited Flash Sale',
-        description: 'Only 10 redemptions allowed across all coupons',
+        description: 'Only 10 redemptions allowed total (With end, With max redemptions)',
         status: 'available',
         start_timestamp: new Date(),
         max_redemptions: 10,
+        end_timestamp: tomorrow,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    // Campaign C: Expired
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
+    // Campaign C: Expired (AVAILABLE status, but passed end_timestamp)
     const campaignC = await db
       .insertInto('campaigns')
       .values({
@@ -74,28 +79,51 @@ async function seed() {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    // Campaign D: Not Available
+    const campaignD = await db
+      .insertInto('campaigns')
+      .values({
+        name: 'Maintenance Campaign',
+        status: 'not_available',
+        start_timestamp: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
     // 4. Create Coupons
     console.log('Creating coupons...');
 
-    // Coupons for Campaign A
+    // Coupons for Campaign A (AVAILABLE Campaign)
     await db.insertInto('coupons').values([
-      { code: 'SUMMER_10', campaign_id: campaignA.id, status: 'available' },
+      // No end, No max redemptions
+      { code: 'SUMMER_10', campaign_id: campaignA.id, status: 'available', expiration_timestamp: null, max_redemptions: null },
       { code: 'SUMMER_20', campaign_id: campaignA.id, status: 'available' },
-      // Unavailable coupon
+      // Coupon NOT AVAILABLE in AVAILABLE campaign
       { code: 'SUMMER_HIDDEN', campaign_id: campaignA.id, status: 'not_available' },
-      // Expired coupon within active campaign
+      // Coupon EXPIRED in AVAILABLE campaign
       { code: 'SUMMER_EXPIRED', campaign_id: campaignA.id, status: 'available', expiration_timestamp: yesterday },
     ]).execute();
 
-    // Coupons for Campaign B
+    // Coupons for Campaign B (AVAILABLE Campaign with limits)
     await db.insertInto('coupons').values([
-      { code: 'FLASH_50', campaign_id: campaignB.id, status: 'available', max_redemptions: 2 }, // Limits per coupon
-      { code: 'FLASH_20', campaign_id: campaignB.id, status: 'available' },
+      // Coupon with max redemptions
+      { code: 'FLASH_50', campaign_id: campaignB.id, status: 'available', max_redemptions: 2 },
+      // Coupon WITHOUT max redemptions (but campaign has limits)
+      { code: 'FLASH_20', campaign_id: campaignB.id, status: 'available', max_redemptions: null },
+      // Coupon WITH end
+      { code: 'FLASH_END', campaign_id: campaignB.id, status: 'available', expiration_timestamp: tomorrow },
     ]).execute();
 
-    // Coupons for Campaign C
+    // Coupons for Campaign C (EXPIRED Campaign)
     await db.insertInto('coupons').values([
-      { code: 'WINTER_50', campaign_id: campaignC.id, status: 'available' },
+      // Coupon NOT EXPIRED in EXPIRED campaign
+      { code: 'WINTER_50', campaign_id: campaignC.id, status: 'available', expiration_timestamp: tomorrow },
+    ]).execute();
+
+    // Coupons for Campaign D (NOT AVAILABLE Campaign)
+    await db.insertInto('coupons').values([
+      // Coupon AVAILABLE in NOT AVAILABLE campaign
+      { code: 'D_AVAILABLE', campaign_id: campaignD.id, status: 'available' },
     ]).execute();
 
     console.log('Seed completed successfully!');
@@ -104,11 +132,19 @@ async function seed() {
     console.log(`Test User 1 ID: ${user1.id}`);
     console.log(`Test User 2 ID: ${user2.id}`);
     console.log('----------------------------------------------------');
-    console.log('Active coupons you can test:');
-    console.log('- SUMMER_10 (Infinite)');
-    console.log('- SUMMER_20 (Infinite)');
-    console.log('- FLASH_50 (Max 2 uses)');
-    console.log('- FLASH_20 (Shared campaign limit of 10)');
+    console.log('Covered Scenarios:');
+    console.log('- coupon scaduto / campaign attiva: SUMMER_EXPIRED');
+    console.log('- coupon attivo / campaign scaduta: WINTER_50');
+    console.log('- coupon non disp. / campaign disp.: SUMMER_HIDDEN');
+    console.log('- coupon disp. / campaign non disp.: D_AVAILABLE');
+    console.log('- campaign senza end: Summer Sale 2026');
+    console.log('- coupon senza end: SUMMER_10');
+    console.log('- campaign con end: Limited Flash Sale / Expired Winter Sale');
+    console.log('- coupon con end: FLASH_END / SUMMER_EXPIRED');
+    console.log('- campaign con max redemptions: Limited Flash Sale');
+    console.log('- campaign senza max redemptions: Summer Sale 2026');
+    console.log('- coupon con max redemptions: FLASH_50');
+    console.log('- coupon senza max redemptions: FLASH_20 / SUMMER_10');
 
   } catch (err) {
     console.error('Seeding failed', err);
@@ -117,5 +153,6 @@ async function seed() {
     await db.destroy();
   }
 }
+
 
 seed();
