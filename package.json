@@ -27,6 +27,8 @@
   "homepage": "https://github.com/omeliiii/coupon-redemption-api#readme",
   "dependencies": {
     "@fastify/rate-limit": "^10.3.0",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.5",
     "fastify": "^5.3.3",
     "fastify-type-provider-zod": "^4.0.2",
     "kysely": "^0.28.16",
