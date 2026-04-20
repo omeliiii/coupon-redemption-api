@@ -13,7 +13,7 @@ export const config = {
   },
   apis: {
     defaultPageSize: Number(process.env.DEFAULT_PAGE_SIZE) || 10,
-    minPageSize: Number(process.env.MIN_PAGE_SIZE) || 5,
+    minPageSize: Number(process.env.MIN_PAGE_SIZE) || 1,
     maxPageSize: Number(process.env.MAX_PAGE_SIZE) || 100,
   }
 } as const;
